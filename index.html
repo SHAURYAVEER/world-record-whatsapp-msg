@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Record Name Chain</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+    }
+    .container { max-width: 900px; width: 100%; padding: 20px; }
+    h1 { text-align: center; color: #38bdf8; }
+    p { text-align: center; color: #cbd5f5; }
+    form { display: flex; gap: 10px; margin: 20px 0; }
+    input { flex: 1; padding: 10px; border-radius: 8px; border: none; font-size: 16px; }
+    button { padding: 10px 16px; border-radius: 8px; border: none; background: #38bdf8; font-weight: bold; cursor: pointer; }
+    button:hover { background: #0ea5e9; }
+    .stats { text-align: center; margin-bottom: 10px; color: #a5b4fc; }
+    .progress-bar { width: 100%; height: 14px; background: #020617; border-radius: 8px; overflow: hidden; margin-bottom: 15px; }
+    .progress { height: 100%; background: linear-gradient(90deg, #22c55e, #38bdf8); width: 0%; transition: width 0.3s; }
+    ul { list-style: none; padding: 0; max-height: 60vh; overflow-y: auto; }
+    li { background: #020617; margin-bottom: 6px; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+    .actions { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+    .badge { text-align: center; margin-top: 10px; color: #22c55e; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌍 Guinness World Record Name Chain</h1>
+    <p>Add your name and help reach <b>65,536 characters</b> — visible worldwide 🌎</p>
+
+    <form id="nameForm">
+      <input id="nameInput" type="text" placeholder="Your name (emojis allowed 😄)" required />
+      <button>Add</button>
+    </form>
+
+    <div class="stats" id="stats">Loading…</div>
+    <div class="progress-bar"><div class="progress" id="progress"></div></div>
+
+    <div class="actions">
+      <button onclick="copyAll()">📋 Copy Full Message</button>
+      <button onclick="shareLink()">📲 Share Link</button>
+    </div>
+
+    <div class="badge" id="badge"></div>
+    <ul id="nameList"></ul>
+  </div>
+
+  <script>
+    // 🔥 REPLACE WITH YOUR OWN FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyBlrb8xE_abbVP1P4Yu-CqglaaO474BxBs",
+      authDomain: "asd-374ea.firebaseapp.com",
+      databaseURL: "https://asd-374ea-default-rtdb.firebaseio.com",
+      projectId: "asd-374ea",
+      storageBucket: "asd-374ea.appspot.com",
+      messagingSenderId: "1025682091058",
+      appId: "1:1025682091058:web:7a9b4f8d7c6e5a4b3c2d1e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const namesRef = database.ref('names');
+
+    const form = document.getElementById('nameForm');
+    const input = document.getElementById('nameInput');
+    const list = document.getElementById('nameList');
+    const stats = document.getElementById('stats');
+    const progress = document.getElementById('progress');
+    const badge = document.getElementById('badge');
+
+    const TARGET = 65536;
+    const BAD_WORDS = ['nigger', 'fuck', 'shit', 'bitch'];
+    let lastSubmit = 0;
+    let allNames = [];
+
+    namesRef.on('value', snap => {
+      const data = snap.val() || {};
+      allNames = Object.values(data);
+      render();
+    });
+
+    function containsBadWord(text) {
+      const lower = text.toLowerCase();
+      return BAD_WORDS.some(w => lower.includes(w));
+    }
+
+    function render() {
+      list.innerHTML = '';
+      allNames.forEach(n => {
+        const li = document.createElement('li');
+        li.textContent = n;
+        list.appendChild(li);
+      });
+
+      const fullText = allNames.join('\n');
+      const count = fullText.length;
+      stats.textContent = `Total names: ${allNames.length} | Characters: ${count} / ${TARGET}`;
+      progress.style.width = Math.min(100, (count / TARGET) * 100) + '%';
+
+      if (count >= TARGET) {
+        badge.textContent = '🏆 RECORD TARGET REACHED! You helped make history!';
+      }
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastSubmit < 60000) {
+        alert('⏱️ Please wait 1 minute before adding another name');
+        return;
+      }
+
+      const value = input.value.trim();
+      if (!value) return;
+
+      if (containsBadWord(value)) {
+        alert('🚫 Inappropriate word detected');
+        return;
+      }
+
+      namesRef.push(value);
+      lastSubmit = now;
+      input.value = '';
+    });
+
+    function copyAll() {
+      const text = allNames.join('\n');
+      navigator.clipboard.writeText(text);
+      alert('📋 Full message copied!');
+    }
+
+    function shareLink() {
+      if (navigator.share) {
+        navigator.share({ title: 'World Record Name Chain', url: window.location.href });
+      } else {
+        alert('Sharing not supported on this device');
+      }
+    }
+  </script>
+</body>
+</html>
